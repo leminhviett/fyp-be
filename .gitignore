@@ -1,0 +1,4 @@
+.env
+.DS_Store
+draft.py
+__pycache__

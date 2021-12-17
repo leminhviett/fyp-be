@@ -1,0 +1,4 @@
+jwt
+flask
+pymongo
+flask_restful
