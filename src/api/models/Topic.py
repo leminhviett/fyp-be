@@ -3,7 +3,8 @@ from pymongo.database import Database
 from bson.objectid import ObjectId
 from src.api.models import db_err_handler
 
-class TaskModel:
+
+class TopicTaskModel:
     def __init__(self, desc, ques, ans, img_loc:str):
         self.desc = desc
         self.ques = ques
@@ -13,10 +14,10 @@ class TaskModel:
     def to_dict(self):
         return self.__dict__
             
-class SectionModel:
+class TopicSectionModel:
     MAX_LEN_TASK = 15
 
-    def __init__(self, heading, tasks:List[TaskModel] = []):
+    def __init__(self, heading, tasks:List[TopicTaskModel] = []):
         self.heading = heading
         self.tasks = tasks
     
@@ -25,7 +26,7 @@ class SectionModel:
         return {"heading" : self.heading, "tasks" : temp}
 
 class TopicModel:
-    def __init__(self, user_name, topic_name, desc, img_loc=None, sections:List[SectionModel] = []) -> None:
+    def __init__(self, user_name, topic_name, desc, img_loc=None, sections:List[TopicSectionModel] = []) -> None:
         self.author_name = user_name
         self.topic_name = topic_name
         self.topic_desc = desc
@@ -42,47 +43,60 @@ class TopicModel:
             "banner_img" : self.banner_img
         }
 
+@db_err_handler
 class TopicCollection:
-    _topicCollection = None
-    def __init__(self, db:Database):
-        if TopicCollection._topicCollection is None:
-            TopicCollection._topicCollection = db.topics
+    
+    def get_len_section(self,topic_id):
+        res = self.collection.find_one({"_id" : ObjectId(topic_id)})
+        return len(res['sections'])
+
+    def get_len_task(self, topic_id, section_idx:int):
+        res = self.collection.find_one({"_id" : ObjectId(topic_id)})
+        if len(res['sections']) - 1 >= section_idx:
+            return len(res['sections'][section_idx])
         else:
-            raise Exception("topic collection is already init. Call get_instance() instead")
-    
-    @db_err_handler
-    def get_instance():
-        return TopicCollection._topicCollection
-    
-    @db_err_handler
-    def insert_topic(new_topic:TopicModel):
-        return TopicCollection._topicCollection.insert_one(new_topic.to_dict())
-    
-    @db_err_handler
-    def get_topic_by_id(topic_id:str):
-        return TopicCollection._topicCollection.find_one({"_id":ObjectId(topic_id)})
-    
-    @db_err_handler
-    def get_topics():
-        return TopicCollection._topicCollection.find()
+            return -1
 
-    @db_err_handler
-    def add_task_by_topic_id(topic_id, task:TaskModel):
-        return TopicCollection._topicCollection.update_one({"_id" : ObjectId(topic_id)}, {"$push" : {"sections" : task.to_dict()}})
+    def __init__(self, db:Database):
+        self.collection = db.topics
     
-    @db_err_handler
-    def update_task_by_topic_id(topic_id, task_idx, task:TaskModel):
-        return TopicCollection._topicCollection.update_one({"_id" : ObjectId(topic_id)}, {"$set" : {f"sections.{task_idx}" : task.to_dict()}})
+    def insert_topic(self, new_topic:TopicModel):
+        return self.collection.insert_one(new_topic.to_dict())
     
-    @db_err_handler
-    def delete_topic_by_id(topic_id:str):
-        return TopicCollection._topicCollection.delete_one({"_id" : ObjectId(topic_id)})
+    def get_topic_by_id(self, topic_id:str):
+        return self.collection.find_one({"_id":ObjectId(topic_id)})
+    
+    def get_topics(self):
+        return self.collection.find()
 
-    @db_err_handler
-    def del_task_topic_by_id(topic_id, task_idx):
-        result1 = TopicCollection._topicCollection.update_one({"_id" : ObjectId(topic_id)}, {"$unset" : {f"sections.{task_idx}" : ""}})
+    def del_topic(self, topic_id:str):
+        return self.collection.delete_one({"_id" : ObjectId(topic_id)})
+
+    def add_section(self, topic_id, section:TopicSectionModel):
+        return self.collection.update_one({"_id" : ObjectId(topic_id)}, {"$push" : {"sections" : section.to_dict()}})
+    
+    def update_section_heading(self, topic_id, section_idx, section_heading:str):
+        return self.collection.update_one({"_id" : ObjectId(topic_id)}, {"$set" : {f"sections.{section_idx}.heading" : section_heading}})
+    
+    def del_section(self, topic_id, section_idx):
+        result1 = self.collection.update_one({"_id" : ObjectId(topic_id)}, {"$unset" : {f"sections.{section_idx}" : ""}})
         if result1:
-            result2 = TopicCollection._topicCollection.update_one({"_id" : ObjectId(topic_id)}, {"$pull" : {f"sections" : None}})
+            result2 = self.collection.update_one({"_id" : ObjectId(topic_id)}, {"$pull" : {f"sections" : None}})
+        else:
+            return None
+        
+        return result2
+    
+    def add_task(self, topic_id, section_idx, task:TopicTaskModel):
+        return self.collection.update_one({"_id" : ObjectId(topic_id)}, {"$push" : {f"sections.{section_idx}.tasks" : task.to_dict()}})
+
+    def update_task(self, topic_id, section_idx, task_idx, task:TopicTaskModel):
+        return self.collection.update_one({"_id" : ObjectId(topic_id)}, {"$set" : {f"sections.{section_idx}.tasks.{task_idx}" : task.to_dict()}})
+    
+    def del_task(self, topic_id, section_idx, task_idx):
+        result1 = self.collection.update_one({"_id" : ObjectId(topic_id)}, {"$unset" : {f"sections.{section_idx}.tasks.{task_idx}" : ""}})
+        if result1:
+            result2 = self.collection.update_one({"_id" : ObjectId(topic_id)}, {"$pull" : {f"sections.{section_idx}.tasks." : None}})
         else:
             return None
         

@@ -11,6 +11,8 @@ def protected_by_token(func):
             bearer_token = request.get_json()['bearer_token']
         except:
             return {"error" : "Token is missing"}, 401
+
+
         try:
             data = jwt.decode(bearer_token, os.getenv("SECRET_KEY"),algorithms=["HS256"])
             exp = data['exp']
@@ -18,9 +20,8 @@ def protected_by_token(func):
                 return {"error" : "Token expired"}, 401
             
             return func(*args, **kargs, user_name=data['user_name'])
-        
-            
         except Exception as e:
+            print(e)
             return {"error" : e}, 401
 
     return wrapper

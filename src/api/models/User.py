@@ -1,6 +1,8 @@
+from pymongo.collection import ReturnDocument
 from pymongo.database import Database
 import hashlib, jwt, os
-from src.api.models import TokenModel, db_err_handler
+from .Token import TokenModel
+from .utils import db_err_handler
 
 class UserModel:
     def __init__(self, user_name, pw, token:TokenModel,topics=[], challenges=[]):
@@ -10,46 +12,35 @@ class UserModel:
        self.challenges = challenges
        self.token = token.__dict__
     
-    @staticmethod
-    def hash_pw(pw):
+    @classmethod
+    def hash_pw(cls, pw):
         return hashlib.md5(pw.encode()).hexdigest()
 
+@db_err_handler
 class UserCollection:
-    _userCollection = None
-    def __init__(self, db:Database):
-        if UserCollection._userCollection is None:
-            UserCollection._userCollection = db.users
-        else:
-            raise Exception("user collection is already init. Call get_instance() instead")
-        
-    @staticmethod
-    def get_instance():
-        return UserCollection._userCollection
+    def __init__(self, db:Database) -> None:
+        self.collection = db.users
     
-    @staticmethod
-    @db_err_handler
-    def insert_user(newUser:UserModel):
-        return UserCollection._userCollection.insert_one(newUser.__dict__)
+    def insert_user(self, newUser:UserModel):
+        return self.collection.insert_one(newUser.__dict__)
     
-    @staticmethod
-    @db_err_handler
-    def find_user_by_username(user_name):
-        return UserCollection._userCollection.find_one({"user_name" : user_name})
+    def find_user_by_username(self, user_name):
+        return self.collection.find_one({"user_name" : user_name})
     
-    @staticmethod
-    @db_err_handler
-    def renew_token_by_username(user_name):
+    def renew_token(self, user_name):
         new_expiration = TokenModel.get_latest_exp()
         new_digest = jwt.encode({"user_name" : user_name, "exp" : new_expiration}, os.getenv("SECRET_KEY"),algorithm="HS256")
 
-        return UserCollection._userCollection.update_one({"user_name":user_name}, {"$set" : {"token.digest" : new_digest, "token.exp" : new_expiration}})
+        return self.collection.find_one_and_update({"user_name":user_name}, {"$set" : {"token.digest" : new_digest, "token.exp" : new_expiration}}, return_document=ReturnDocument.AFTER)
     
-    @staticmethod
-    @db_err_handler
-    def push_topic_of_username(user_name, topic_id):
-        return UserCollection._userCollection.update_one({"user_name":user_name}, {"$push" : {"topics" : str(topic_id)}})
+    def push_topic(self, user_name, topic_id):
+        return self.collection.update_one({"user_name":user_name}, {"$push" : {"topics" : str(topic_id)}})
     
-    @staticmethod
-    @db_err_handler
-    def del_topic_of_username(user_name, topic_id):
-        return UserCollection._userCollection.update_one({"user_name":user_name}, {"$pull" : {"topics" : str(topic_id)}})
+    def del_topic(self, user_name, topic_id):
+        return self.collection.update_one({"user_name":user_name}, {"$pull" : {"topics" : str(topic_id)}})
+
+    def push_challenge(self, user_name, challenge_id):
+        return self.collection.update_one({"user_name":user_name}, {"$push" : {"challenges" : str(challenge_id)}})
+    
+    def del_challenge(self, user_name, challenge_id):
+        return self.collection.update_one({"user_name":user_name}, {"$pull" : {"challenges" : str(challenge_id)}})

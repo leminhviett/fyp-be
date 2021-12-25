@@ -11,7 +11,7 @@ logging.basicConfig(level=logging.DEBUG)
 if __name__ == "__main__":
     port = 5000
     
-    from src.api.models import index
+    from src.api.models import db_init
     from src.api import routes
 
     app.run(debug=True, port=port)
