@@ -18,13 +18,18 @@ class Topics(Resource):
     # TODO: pagination needed
     @marshal_with(mfields)
     def get(self):
-        return {"payload" : jsonize_cursor(topic_collection.get_topics())}
+        # todo: hide ans before sending back to client
+        res = topic_collection.get_topics()
+        for ele in res:
+            print(ele)
+        return {"payload" : jsonize_cursor(res)}
 
-class Topic(Resource):
+class TopicResource(Resource):
+    # TODO: only find published topic
     @marshal_with(mfields)
     def get(self):
-        return {"payload" : topic_collection.get_topic_by_id(id)}
-
+        return {"payload" : topic_collection.get_topic(id)}
+    
     # upload an empty topisc
     @marshal_with(mfields)
     @protected_by_token
@@ -59,4 +64,19 @@ class Topic(Resource):
                 return {"error" : e}, 500
 
         return {"error" : "Unauthorized action"}, 401
-   
+
+    @marshal_with(mfields)
+    @protected_by_token
+    def patch(self, user_name):
+        args = write_parser.parse_args()
+        topic_id = str(args['topic_id'])
+
+        if helper_check_ownership(user_name, topic_id):
+            # set topic to be published
+            result = topic_collection.set_topic_published(topic_id)
+            if result is None: return {"error" : "DB error"}, 500
+            
+            return {"message" : "successfully done"}
+
+        return {"error" : "Unauthorized action"}, 401
+        

@@ -2,7 +2,7 @@ from flask_restful import Resource, marshal_with, reqparse
 from src.api.models import *
 from src.api.middlewares import protector
 from src.utils.utils import get_response_format
-from .helper import helper_check_ownership
+from .helper import *
 
 mfields = get_response_format()
 
@@ -30,6 +30,7 @@ class TaskTopic(Resource):
         return TopicTaskModel(desc, ques, ans, img_loc)
 
     @marshal_with(mfields)
+    @helper_check_is_published
     @protector.protected_by_token
     def post(self, user_name):
         args = task_parser.parse_args()
@@ -52,6 +53,7 @@ class TaskTopic(Resource):
         return {"error" : "Unauthorized action"}, 401
     
     @marshal_with(mfields)
+    @helper_check_is_published
     @protector.protected_by_token
     def patch(self, user_name):
         args = task_parser.parse_args()
@@ -77,6 +79,7 @@ class TaskTopic(Resource):
 
 
     @marshal_with(mfields)
+    @helper_check_is_published
     @protector.protected_by_token
     def delete(self, user_name):
         args = task_parser.parse_args()
@@ -90,7 +93,7 @@ class TaskTopic(Resource):
 
         # delete in array
         if helper_check_ownership(user_name, topic_id):
-            result = topic_collection.del_task_topic_by_id(topic_id, task_idx)
+            result = topic_collection.del_task(topic_id, section_idx, task_idx)
             if result:
                 return {"message":"task deleted"}
             return {"error" : "DB error"}, 500

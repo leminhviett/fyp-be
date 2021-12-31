@@ -3,6 +3,7 @@ from src.api.models import *
 from src.api.middlewares import protector
 from src.utils.utils import get_response_format
 from src.api.resources.Challenge import *
+from .helper import helper_check_ownership
 
 mfields = get_response_format()
 
@@ -39,7 +40,7 @@ class TaskChallenge(Resource):
 
             if task_model is None:
                 return {"error" : "Invalid task data"}, 400
-            result = ChallengeCollection.add_task_by_challenge_id(challenge_id, task_model)
+            result = challenge_collection.add_task(challenge_id, task_model)
             if result is None:
                 return {"error" : "DB error"}, 500
 
@@ -53,12 +54,15 @@ class TaskChallenge(Resource):
         args = task_parser.parse_args()
         challenge_id, task_data, task_idx = args['challenge_id'], args['task_data'], args['task_idx']
 
+        if challenge_collection.get_len_tasks(challenge_id) - 1 < task_idx:
+            return {"error" : 'task idx not exist'}
+
         if helper_check_ownership(user_name, challenge_id):
             task_model = self.parse_task(task_data)
 
             if task_model is None:
                 return {"error" : "Invalid task data"}, 401
-            result = ChallengeCollection.update_task_by_challenge_id(challenge_id, task_idx, task_model)
+            result = challenge_collection.update_task(challenge_id, task_idx, task_model)
             if result is None:
                 return {"error" : "DB error"}, 500
             return {"message":"task updated"}
@@ -72,9 +76,12 @@ class TaskChallenge(Resource):
         args = task_parser.parse_args()
         challenge_id, task_idx = args['challenge_id'], args['task_idx']
 
+        if challenge_collection.get_len_tasks(challenge_id) - 1 < task_idx:
+            return {"error" : 'task idx not exist'}
+            
         # delete in array
         if helper_check_ownership(user_name, challenge_id):
-            result = TopicCollection.del_task_topic_by_id(challenge_id, task_idx)
+            result = challenge_collection.del_task(challenge_id, task_idx)
             if result:
                 return {"message":"task deleted"}
             return {"error" : "DB error"}, 500

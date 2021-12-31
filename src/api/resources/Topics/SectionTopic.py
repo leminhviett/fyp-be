@@ -2,7 +2,7 @@ from flask_restful import Resource, marshal_with, reqparse
 from src.api.models import *
 from src.api.middlewares import protector
 from src.utils.utils import get_response_format
-from .helper import helper_check_ownership
+from .helper import *
 
 mfields = get_response_format()
 
@@ -17,6 +17,7 @@ section_parser.add_argument("section_idx", type=int)
 class SectionTopic(Resource):
 
     @marshal_with(mfields)
+    @helper_check_is_published
     @protector.protected_by_token
     def post(self, user_name):
         args = section_parser.parse_args()
@@ -34,6 +35,7 @@ class SectionTopic(Resource):
         return {"error" : "Unauthorized action"}, 401
     
     @marshal_with(mfields)
+    @helper_check_is_published
     @protector.protected_by_token
     def patch(self, user_name):
         args = section_parser.parse_args()
@@ -53,6 +55,7 @@ class SectionTopic(Resource):
 
 
     @marshal_with(mfields)
+    @helper_check_is_published
     @protector.protected_by_token
     def delete(self, user_name):
         args = section_parser.parse_args()

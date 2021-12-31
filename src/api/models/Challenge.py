@@ -32,39 +32,41 @@ class ChallengeModel:
 
 
 class ChallengeCollection:
-    _challengeCollection = None
     def __init__(self, db:Database):
-        if ChallengeCollection._challengeCollection is None:
-            ChallengeCollection._challengeCollection = db.challenges
+        self.collection = db.challenges
+    
+    def get_len_tasks(self, challenge_id):
+        res = self.collection.find_one({"_id" : ObjectId(challenge_id)})
+        if res is None:
+            return -1
+        return len(res['tasks'])
+
+    @db_err_handler
+    def del_challenge(self, challenge_id:str):
+        return self.collection.delete_one({"_id" : ObjectId(challenge_id)})
+    
+    @db_err_handler
+    def get_challenge(self, challenge_id:str):
+        return self.collection.find_one({"_id" : ObjectId(challenge_id)})
+
+    @db_err_handler
+    def insert_challenge(self, new_challenge:ChallengeModel):
+        return self.collection.insert_one(new_challenge.to_dict())
+
+    @db_err_handler
+    def add_task(self, challengeId, task:ChallengeTaskModel):
+        return self.collection.update_one({"_id" : ObjectId(challengeId)}, {"$push" : {"tasks" : task.to_dict()}})
+
+    @db_err_handler
+    def update_task(self, challenge_id, task_idx, task:ChallengeTaskModel):
+        return self.collection.update_one({"_id" : ObjectId(challenge_id)}, {"$set" : {f"tasks.{task_idx}" : task.to_dict()}})
+    
+    @db_err_handler
+    def del_task(self, challenge_id, task_idx):
+        result1 = self.collection.update_one({"_id" : ObjectId(challenge_id)}, {"$unset" : {f"tasks.{task_idx}" : ""}})
+        if result1:
+            result2 = self.collection.update_one({"_id" : ObjectId(challenge_id)}, {"$pull" : {f"tasks" : None}})
         else:
-            raise Exception("user collection is already init. Call get_instance() instead")
-
-    @classmethod
-    def get_instance(cls):
-        return cls._challengeCollection
-    
-    @classmethod
-    @db_err_handler
-    def del_challenge_by_id(cls, challenge_id:str):
-        return cls._challengeCollection.delete_one({"_id" : ObjectId(challenge_id)})
-    
-    @classmethod
-    @db_err_handler
-    def get_challenge_by_id(cls, challenge_id:str):
-        return cls._challengeCollection.find_one({"_id" : ObjectId(challenge_id)})
-
-    @classmethod
-    @db_err_handler
-    def insert_challenge(cls, new_challenge:ChallengeModel):
-        return cls._challengeCollection.insert_one(new_challenge.to_dict())
-
-    @classmethod
-    @db_err_handler
-    def add_task_by_challenge_id(cls, challengeId, task:ChallengeTaskModel):
-        return cls._challengeCollection.update_one({"_id" : ObjectId(challengeId)}, {"$push" : {"tasks" : task.to_dict()}})
-
-    @classmethod
-    @db_err_handler
-    def update_task_by_topic_id(cls, topic_id, task_idx, task:ChallengeTaskModel):
-        return cls._topicCollection.update_one({"_id" : ObjectId(topic_id)}, {"$set" : {f"sections.{task_idx}" : task.to_dict()}})
-    
+            return None
+        
+        return result2

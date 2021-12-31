@@ -32,6 +32,7 @@ class TopicModel:
         self.topic_desc = desc
         self.sections = sections
         self.banner_img = img_loc
+        self.published = False
 
     def to_dict(self):
         temp = [ele.to_dict() for ele in self.sections]
@@ -40,7 +41,8 @@ class TopicModel:
             "topic_name": self.topic_name,
             "topic_desc" : self.topic_desc,
             "sections" : temp,
-            "banner_img" : self.banner_img
+            "banner_img" : self.banner_img,
+            "published" : self.published
         }
 
 @db_err_handler
@@ -53,7 +55,8 @@ class TopicCollection:
     def get_len_task(self, topic_id, section_idx:int):
         res = self.collection.find_one({"_id" : ObjectId(topic_id)})
         if len(res['sections']) - 1 >= section_idx:
-            return len(res['sections'][section_idx])
+            print(len(res['sections'][section_idx]['tasks']))
+            return len(res['sections'][section_idx]['tasks'])
         else:
             return -1
 
@@ -63,11 +66,14 @@ class TopicCollection:
     def insert_topic(self, new_topic:TopicModel):
         return self.collection.insert_one(new_topic.to_dict())
     
-    def get_topic_by_id(self, topic_id:str):
+    def get_topic(self, topic_id:str):
         return self.collection.find_one({"_id":ObjectId(topic_id)})
     
     def get_topics(self):
         return self.collection.find()
+
+    def set_topic_published(self, topic_id:str):
+        return self.collection.update_one({"_id" : ObjectId(topic_id)}, {"$set" : {"published" : True}})
 
     def del_topic(self, topic_id:str):
         return self.collection.delete_one({"_id" : ObjectId(topic_id)})
@@ -96,7 +102,7 @@ class TopicCollection:
     def del_task(self, topic_id, section_idx, task_idx):
         result1 = self.collection.update_one({"_id" : ObjectId(topic_id)}, {"$unset" : {f"sections.{section_idx}.tasks.{task_idx}" : ""}})
         if result1:
-            result2 = self.collection.update_one({"_id" : ObjectId(topic_id)}, {"$pull" : {f"sections.{section_idx}.tasks." : None}})
+            result2 = self.collection.update_one({"_id" : ObjectId(topic_id)}, {"$pull" : {f"sections.{section_idx}.tasks" : None}})
         else:
             return None
         
