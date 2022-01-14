@@ -73,8 +73,6 @@ class ChallengeResource(Resource):
                 for task in target_challenge['tasks']:
                     removed_files.append(task['img_loc'])
                 
-                # print(removed_files)
-                
                 for fp in removed_files:
                     try:
                         os.remove(fp)

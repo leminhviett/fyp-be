@@ -35,8 +35,12 @@ class TaskChallenge(Resource):
         
         caption, img_data = task_data['caption'], task_data['img_data']
 
-        img_encoded = ImgEncoded(img_data.encode(), TaskChallenge.gen_img_fn(challenge_id) )
-        img_encoded.save()
+        try:
+            img_encoded = ImgEncoded(img_data.encode(), TaskChallenge.gen_img_fn(challenge_id) )
+            img_encoded.save()
+        except Exception as e:
+            print("error while encoding img ", e)
+            return None
 
         return ChallengeTaskModel(caption, img_encoded.full_loc)
 
