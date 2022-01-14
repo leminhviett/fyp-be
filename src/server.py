@@ -1,8 +1,11 @@
 from flask import Flask
 from flask_restful import Api       
+from flask_cors import CORS, cross_origin
+import os
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = "12345"
+app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
+CORS(app)
 
 api = Api(app)
 

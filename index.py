@@ -8,6 +8,7 @@ from src.server import app, api
 
 load_dotenv()
 logging.basicConfig(level=logging.DEBUG)
+
 if __name__ == "__main__":
     port = 5000
     
@@ -15,3 +16,4 @@ if __name__ == "__main__":
     from src.api import routes
 
     app.run(debug=True, port=port)
+

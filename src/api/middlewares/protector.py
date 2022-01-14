@@ -10,8 +10,12 @@ def protected_by_token(func):
         try:
             bearer_token = request.get_json()['bearer_token']
         except:
-            return {"error" : "Token is missing"}, 401
+            try:
+                bearer_token = request.form['bearer_token']
+            except:
+                return {"error" : "Token is missing"}, 401
 
+        print(bearer_token)
 
         try:
             data = jwt.decode(bearer_token, os.getenv("SECRET_KEY"),algorithms=["HS256"])

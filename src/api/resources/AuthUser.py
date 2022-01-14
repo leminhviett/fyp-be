@@ -12,11 +12,12 @@ mfields = get_response_format()
 class AuthUser(Resource):
     def helper(self, user_name, pw, renew_token):
         result = user_collection.find_user_by_username(user_name)
-        digest = result['token']['digest']
 
         if result is None:
             return {"error" : "wrong user name"}, 401
         else:
+            digest = result['token']['digest']
+            
             if UserModel.hash_pw(pw) == result['hashed_pw']:
                 if renew_token:
                     updated_res = user_collection.renew_token(user_name)

@@ -13,10 +13,11 @@ class ChallengeTaskModel:
         return self.__dict__
 
 class ChallengeModel:
-    def __init__(self, user_name, challenge_name, desc, img_loc=None, tasks:List[ChallengeTaskModel] = []) -> None:
+    def __init__(self, user_name, challenge_name, desc, vm_loc:str, img_loc=None, tasks:List[ChallengeTaskModel] = []) -> None:
         self.author_name = user_name
         self.challenge_name = challenge_name
         self.challenge_desc = desc
+        self.challenge_vm = vm_loc
         self.img_loc = img_loc
         self.tasks = tasks
 
@@ -26,8 +27,9 @@ class ChallengeModel:
             "author_name" : self.author_name,
             "challenge_name": self.challenge_name,
             "challenge_desc" : self.challenge_desc,
-            "tasks" : temp,
-            "img_loc" : self.img_loc
+            "challenge_vm": self.challenge_vm,
+            "img_loc" : self.img_loc,
+            "tasks" : temp
         }
 
 
