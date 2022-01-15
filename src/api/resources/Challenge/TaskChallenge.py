@@ -25,6 +25,15 @@ class TaskChallenge(Resource):
         return f"{challenge_id}-{uuid.uuid4()}.png"
 
     @staticmethod
+    def del_task_file(challenge_id, task_idx):
+        # remove all file loc in storage
+        target_challenge = challenge_collection.get_challenge(challenge_id)
+        try:
+            os.remove(target_challenge['tasks'][task_idx]['img_loc'])
+        except OSError:
+            pass
+
+    @staticmethod
     def parse_task(task_data, challenge_id):
         attrs = ["caption", "img_data"]
         for attr in attrs:
@@ -75,12 +84,7 @@ class TaskChallenge(Resource):
         if helper_check_ownership(user_name, challenge_id):
             task_model = self.parse_task(task_data, challenge_id)
 
-            # remove all file loc in storage
-            target_challenge = challenge_collection.get_challenge(challenge_id)
-            try:
-                os.remove(target_challenge['tasks'][task_idx]['img_loc'])
-            except OSError:
-                pass
+            TaskChallenge.del_task_file(challenge_id, task_idx)
 
             if task_model is None:
                 return {"error" : "Invalid task data"}, 401
@@ -103,11 +107,7 @@ class TaskChallenge(Resource):
             
         if helper_check_ownership(user_name, challenge_id):
             # remove all file loc in storage
-            target_challenge = challenge_collection.get_challenge(challenge_id)
-            try:
-                os.remove(target_challenge['tasks'][task_idx]['img_loc'])
-            except OSError:
-                pass
+            TaskChallenge.del_task_file(challenge_id, task_idx)
 
             result = challenge_collection.del_task(challenge_id, task_idx)
             if result:

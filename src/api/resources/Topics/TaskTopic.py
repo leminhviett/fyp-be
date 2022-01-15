@@ -2,7 +2,9 @@ from flask_restful import Resource, marshal_with, reqparse
 from src.api.models import *
 from src.api.middlewares import protector
 from src.utils.utils import get_response_format
+from src.utils.storage import ImgEncoded
 from .helper import *
+import uuid
 
 mfields = get_response_format()
 
@@ -16,18 +18,37 @@ task_parser.add_argument("task_data", type=dict)
 # whenever task is updated/ or deleted
 
 class TaskTopic(Resource):
-
     @staticmethod
-    def parse_task(task_data):
-        attrs = ["desc", "ques", "ans", "img_loc"]
+    def gen_img_fn(topic_id):
+        return f"{topic_id}-{uuid.uuid4()}.png"
+    
+    @staticmethod
+    def del_file_task(topic_id, section_idx, task_idx):
+        target_topic = topic_collection.get_topic(topic_id)
+        target_task = target_topic['sections'][section_idx]['tasks'][task_idx]
+
+        try:
+            os.remove(target_task['img_loc'])
+        except OSError:
+            pass
+    
+    @staticmethod
+    def parse_task(topic_id, task_data):
+        attrs = ["desc", "ques", "ans", "img_data"]
         for attr in attrs:
             if attr in task_data:
                 # print(f"{attr} checked")
                 continue
             return None
         
-        desc, ques, ans, img_loc = task_data['desc'], task_data['ques'], task_data['ans'], task_data['img_loc']
-        return TopicTaskModel(desc, ques, ans, img_loc)
+        desc, ques, ans, img_data = task_data['desc'], task_data['ques'], task_data['ans'], task_data['img_data']
+        try:
+            img_encoded = ImgEncoded(img_data.encode(), TaskTopic.gen_img_fn(topic_id))
+            img_encoded.save()
+        except Exception as e:
+            print(f"Error {e} during encoding img")
+        
+        return TopicTaskModel(desc, ques, ans, img_encoded.full_loc)
 
     @marshal_with(mfields)
     @helper_check_is_published
@@ -40,7 +61,7 @@ class TaskTopic(Resource):
             return {"error" : "section idx not exist"}
 
         if helper_check_ownership(user_name, topic_id):
-            task_model = self.parse_task(task_data)
+            task_model = self.parse_task(topic_id, task_data)
 
             if task_model is None:
                 return {"error" : "Invalid task data"}, 400
@@ -66,8 +87,11 @@ class TaskTopic(Resource):
             return {"error" : "task idx not exist"}
 
         if helper_check_ownership(user_name, topic_id):
-            task_model = self.parse_task(task_data)
-            print(task_model.to_dict())
+            task_model = self.parse_task(topic_id, task_data)
+
+            # old file task
+            TaskTopic.del_file_task(topic_id, section_idx, task_idx)
+
             if task_model is None:
                 return {"error" : "Invalid task data"}, 401
             result = topic_collection.update_task(topic_id, section_idx, task_idx, task_model)
@@ -93,6 +117,11 @@ class TaskTopic(Resource):
 
         # delete in array
         if helper_check_ownership(user_name, topic_id):
+            target_topic = topic_collection.get_topic(topic_id)
+
+            # old file task
+            TaskTopic.del_file_task(topic_id, section_idx, task_idx)
+
             result = topic_collection.del_task(topic_id, section_idx, task_idx)
             if result:
                 return {"message":"task deleted"}

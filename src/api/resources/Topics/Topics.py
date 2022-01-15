@@ -2,7 +2,9 @@ from flask_restful import Resource, marshal_with, reqparse
 from src.api.models import *
 from src.api.middlewares.protector import protected_by_token
 from src.utils.utils import get_response_format
+from src.utils.storage import ImgEncoded
 from .helper import *
+import uuid
 
 create_parser = reqparse.RequestParser()
 create_parser.add_argument("topic_name", type=str, help="topic name is reuqired", required=True)
@@ -25,6 +27,10 @@ class Topics(Resource):
         return {"payload" : jsonize_cursor(res)}
 
 class TopicResource(Resource):
+    @staticmethod
+    def gen_img_fn(topic_name):
+        return f"{topic_name}-{uuid.uuid4()}.png"
+
     # TODO: only find published topic
     @marshal_with(mfields)
     def get(self):
@@ -37,12 +43,15 @@ class TopicResource(Resource):
         args = create_parser.parse_args()
         topic_name, topic_desc, banner_img = args['topic_name'], args['topic_desc'], args['banner_img']
 
+        banner_img_obj = ImgEncoded(banner_img.encode(), TopicResource.gen_img_fn(topic_name))
+        banner_img_obj.save()
+
         try:
             with client.start_session() as session:
                 with session.start_transaction():
-                    result = topic_collection.insert_topic(TopicModel(user_name, topic_name, topic_desc, banner_img))
+                    result = topic_collection.insert_topic(TopicModel(user_name, topic_name, topic_desc, banner_img_obj.full_loc))
                     result2 = user_collection.push_topic(user_name, str(result.inserted_id))
-            if result2:        
+            if result2:
                 return {"message" : "successfully added topic"}
         except Exception as e:
             return {"error" : e}, 500
@@ -54,6 +63,22 @@ class TopicResource(Resource):
         topic_id = str(args['topic_id'])
 
         if helper_check_ownership(user_name, topic_id):
+            target_topic = topic_collection.get_topic(topic_id)
+            if target_topic is None:
+                return {"message" : "topic id not found"}
+            
+            removed_files = [target_topic['banner_img']]
+
+            for section in target_topic['sections']:
+                for task in section['tasks']:
+                    removed_files.append(task['img_loc'])
+
+            for f in removed_files:
+                try:
+                    os.remove(f)
+                except OSError:
+                    pass
+
             try:
                 with client.start_session() as session:
                     with session.start_transaction():
