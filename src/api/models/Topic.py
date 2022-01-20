@@ -69,8 +69,8 @@ class TopicCollection:
     def get_topic(self, topic_id:str):
         return self.collection.find_one({"_id":ObjectId(topic_id)})
     
-    def get_topics(self):
-        return self.collection.find()
+    def get_topics(self, page_num, limit):
+        return self.collection.find().skip((page_num - 1)*limit).limit(limit)
 
     def set_topic_published(self, topic_id:str):
         return self.collection.update_one({"_id" : ObjectId(topic_id)}, {"$set" : {"published" : True}})

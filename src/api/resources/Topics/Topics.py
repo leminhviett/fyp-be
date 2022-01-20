@@ -19,22 +19,28 @@ mfields = get_response_format()
 class Topics(Resource):
     # TODO: pagination needed
     @marshal_with(mfields)
-    def get(self):
+    def get(self, page_num, limit=2):
+        if page_num==0: return {"error" : "page_num > 0"}
         # todo: hide ans before sending back to client
-        res = topic_collection.get_topics()
-        for ele in res:
-            print(ele)
+        res = topic_collection.get_topics(int(page_num), limit)
         return {"payload" : jsonize_cursor(res)}
 
 class TopicResource(Resource):
     @staticmethod
     def gen_img_fn(topic_name):
-        return f"{topic_name}-{uuid.uuid4()}.png"
+        return f"{topic_name}_{uuid.uuid4()}.png"
 
     # TODO: only find published topic
     @marshal_with(mfields)
     def get(self):
-        return {"payload" : topic_collection.get_topic(id)}
+        args = write_parser.parse_args()
+        topic_id = str(args['topic_id'])
+
+        res = topic_collection.get_topic(topic_id)
+        if res is None: return {"error" : "not found"}
+        res['_id'] = str(res['_id'])
+
+        return {"payload" : res}
     
     # upload an empty topisc
     @marshal_with(mfields)
@@ -42,14 +48,22 @@ class TopicResource(Resource):
     def post(self, user_name):
         args = create_parser.parse_args()
         topic_name, topic_desc, banner_img = args['topic_name'], args['topic_desc'], args['banner_img']
-
-        banner_img_obj = ImgEncoded(banner_img.encode(), TopicResource.gen_img_fn(topic_name))
-        banner_img_obj.save()
+        try:
+            banner_img_obj = ImgEncoded(banner_img, TopicResource.gen_img_fn(topic_name))
+            banner_img_obj.save()
+        except Exception as e:
+            return {"error" : "img wrong format"}
 
         try:
             with client.start_session() as session:
                 with session.start_transaction():
-                    result = topic_collection.insert_topic(TopicModel(user_name, topic_name, topic_desc, banner_img_obj.full_loc))
+                    result = topic_collection.insert_topic(
+                                    TopicModel(
+                                        user_name, 
+                                        topic_name,
+                                        topic_desc, 
+                                        os.path.join(banner_img_obj.sub_folder, banner_img_obj.file_name
+                                    )))
                     result2 = user_collection.push_topic(user_name, str(result.inserted_id))
             if result2:
                 return {"message" : "successfully added topic"}
@@ -75,7 +89,7 @@ class TopicResource(Resource):
 
             for f in removed_files:
                 try:
-                    os.remove(f)
+                    ImgEncoded('', '').delete(f)
                 except OSError:
                     pass
 
@@ -104,4 +118,4 @@ class TopicResource(Resource):
             return {"message" : "successfully done"}
 
         return {"error" : "Unauthorized action"}, 401
-        
+    

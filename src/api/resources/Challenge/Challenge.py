@@ -1,4 +1,6 @@
 from os import remove
+from os.path import join
+
 import re
 from src.api.models import *
 from src.api.middlewares.protector import protected_by_token
@@ -23,11 +25,25 @@ write_parser.add_argument("challenge_id", type=str, help="challenge id is reuqir
 
 mfields = get_response_format()
 
+class Challenges(Resource):
+    @marshal_with(mfields)
+    def get(self, page_num, limit=2):
+        if page_num==0: return {"error" : "page_num > 0"}
+        # todo: hide ans before sending back to client
+        res = challenge_collection.get_challenges(int(page_num), limit)
+        return {"payload" : jsonize_cursor(res)}
+
 class ChallengeResource(Resource):
 
     @marshal_with(mfields)
     def get(self):
-        return {"payload" : challenge_collection.get_topic_by_id(id)}
+        args = write_parser.parse_args()
+        challenge_id = str(args['challenge_id'])
+        res = challenge_collection.get_challenge(challenge_id)
+        if res is None: return {"payload" : "", "message" : "not found"}
+
+        res['_id'] = str(res['_id'])
+        return {"payload" : res}
 
     # upload an empty topisc
     @marshal_with(mfields)
@@ -38,16 +54,20 @@ class ChallengeResource(Resource):
         challenge_vm = args['challenge_vm']
         banner_img = args['banner_img']
 
-        challenge_file_obj = VmFile(challenge_vm, user_name)
+        challenge_file_obj = VmFile(challenge_vm)
         challenge_file_obj.save()
 
-        banner_file_obj = ImgFile(banner_img, user_name)
+        banner_file_obj = ImgFile(banner_img)
         banner_file_obj.save()
 
         try:
             with client.start_session() as session:
                 with session.start_transaction():
-                    new_challenge = ChallengeModel(user_name, challenge_name, challenge_desc, challenge_file_obj.get_full_loc(), banner_file_obj.get_full_loc())
+                    new_challenge = ChallengeModel(user_name, 
+                                        challenge_name, 
+                                        challenge_desc, 
+                                        join(challenge_file_obj.get_subfolder(), challenge_file_obj.file_name), 
+                                        join(banner_file_obj.get_subfolder(), banner_file_obj.file_name))
                     result = challenge_collection.insert_challenge(new_challenge)
                     result2 = user_collection.push_challenge(user_name, str(result.inserted_id))
             
@@ -74,10 +94,7 @@ class ChallengeResource(Resource):
                     removed_files.append(task['img_loc'])
                 
                 for fp in removed_files:
-                    try:
-                        os.remove(fp)
-                    except OSError:
-                        pass
+                    BaseFile(None).delete(fp)
 
                 with client.start_session() as session:
                     with session.start_transaction():

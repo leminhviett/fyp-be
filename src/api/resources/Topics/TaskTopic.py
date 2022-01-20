@@ -28,7 +28,7 @@ class TaskTopic(Resource):
         target_task = target_topic['sections'][section_idx]['tasks'][task_idx]
 
         try:
-            os.remove(target_task['img_loc'])
+            ImgEncoded('', '').delete(target_task['img_loc'])
         except OSError:
             pass
     
@@ -43,12 +43,13 @@ class TaskTopic(Resource):
         
         desc, ques, ans, img_data = task_data['desc'], task_data['ques'], task_data['ans'], task_data['img_data']
         try:
-            img_encoded = ImgEncoded(img_data.encode(), TaskTopic.gen_img_fn(topic_id))
+            img_encoded = ImgEncoded(img_data, TaskTopic.gen_img_fn(topic_id))
             img_encoded.save()
         except Exception as e:
             print(f"Error {e} during encoding img")
+            return None
         
-        return TopicTaskModel(desc, ques, ans, img_encoded.full_loc)
+        return TopicTaskModel(desc, ques, ans, os.path.join(img_encoded.sub_folder, img_encoded.file_name))
 
     @marshal_with(mfields)
     @helper_check_is_published

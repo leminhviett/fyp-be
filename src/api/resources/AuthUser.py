@@ -1,4 +1,5 @@
 from flask_restful import Resource, reqparse, marshal_with, fields
+from src.api.middlewares.protector import protected_by_token
 from src.api.models import user_collection, UserModel, TokenModel
 from src.utils.utils import get_response_format
 
@@ -8,6 +9,14 @@ auth_parser.add_argument("pw", type=str, help="pw is reuqired", required=True)
 auth_parser.add_argument("renew_token", type=bool)
 
 mfields = get_response_format()
+
+class UserDev(Resource):
+
+    @marshal_with(mfields)
+    @protected_by_token
+    def get(self, user_name):
+        result = user_collection.find_user_by_username(user_name)
+        return {'payload' : {'topics' : result['topics'], 'challenges': result['challenges']}}
 
 class AuthUser(Resource):
     def helper(self, user_name, pw, renew_token):
@@ -28,27 +37,30 @@ class AuthUser(Resource):
 
     @marshal_with(mfields)
     def patch(self):
+        #log in
         args = auth_parser.parse_args()
         user_name, pw, renew_token = args['user_name'], args['pw'], args['renew_token']
         if not renew_token:
             return {"message":"method not allowed"}, 405
         return self.helper(user_name, pw, renew_token)
     
-    @marshal_with(mfields)  
-    def get(self):
-        args = auth_parser.parse_args()
-        user_name, pw, renew_token = args['user_name'], args['pw'], args['renew_token']
-        if renew_token:
-            return {"message":"method not allowed"}, 405
-        return self.helper(user_name, pw, False)
+    # @marshal_with(mfields)  
+    # def get(self):
+    #     args = auth_parser.parse_args()
+    #     user_name, pw, renew_token = args['user_name'], args['pw'], args['renew_token']
+    #     if renew_token:
+    #         return {"message":"method not allowed"}, 405
+    #     return self.helper(user_name, pw, False)
 
     
     @marshal_with(mfields)
     def post(self):
+        # register
         args = auth_parser.parse_args()
         user_name, pw = args['user_name'], args['pw']
 
         result = user_collection.find_user_by_username(user_name)
+        
         if result is None:
             token = TokenModel(user_name)
             new_user = UserModel(user_name, pw, token)

@@ -48,7 +48,12 @@ class ChallengeCollection:
         return self.collection.delete_one({"_id" : ObjectId(challenge_id)})
     
     @db_err_handler
+    def get_challenges(self, page_num, limit):
+        return self.collection.find().skip((page_num - 1)*limit).limit(limit)
+
+    @db_err_handler
     def get_challenge(self, challenge_id:str):
+        print(challenge_id)
         return self.collection.find_one({"_id" : ObjectId(challenge_id)})
 
     @db_err_handler

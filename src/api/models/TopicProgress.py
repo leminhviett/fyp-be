@@ -13,7 +13,10 @@ class TopicProgressModel:
 class TopicProgessCollection:
     def __init__(self, db:Database) -> None:
         self.collection = db.topic_progess
-    
+
+    def get_progresses(self, learner_id):
+        return self.collection.find({"learner_id" : learner_id})
+        
     def get_progess(self, topic_id, learner_id):
         return self.collection.find_one({"topic_id" : topic_id, "learner_id" : learner_id})
 

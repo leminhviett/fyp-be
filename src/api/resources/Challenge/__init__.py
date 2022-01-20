@@ -1,2 +1,2 @@
-from .Challenge import ChallengeResource
+from .Challenge import ChallengeResource, Challenges
 from .TaskChallenge import TaskChallenge

@@ -1,11 +1,10 @@
-from calendar import c
+from codecs import EncodedFile
 from flask_restful import Resource, marshal_with, reqparse
 from src.api.models import *
 from src.api.middlewares import protector
 from src.utils.utils import get_response_format
 from src.api.resources.Challenge import *
 from .helper import helper_check_ownership
-import werkzeug
 from src.utils.storage import *
 
 mfields = get_response_format()
@@ -28,37 +27,42 @@ class TaskChallenge(Resource):
     def del_task_file(challenge_id, task_idx):
         # remove all file loc in storage
         target_challenge = challenge_collection.get_challenge(challenge_id)
+
         try:
-            os.remove(target_challenge['tasks'][task_idx]['img_loc'])
+            file_path = target_challenge['tasks'][task_idx]['img_loc']
+            ImgEncoded('', '').delete(file_path)
         except OSError:
             pass
 
     @staticmethod
     def parse_task(task_data, challenge_id):
-        attrs = ["caption", "img_data"]
-        for attr in attrs:
-            if attr in task_data:
-                # print(f"{attr} checked")
-                continue
+
+        if "caption" not in task_data:
             return None
         
+        if "img_data" not in task_data:
+            return ChallengeTaskModel(task_data['caption'], "")
         caption, img_data = task_data['caption'], task_data['img_data']
+        
 
         try:
-            img_encoded = ImgEncoded(img_data.encode(), TaskChallenge.gen_img_fn(challenge_id) )
+            img_encoded = ImgEncoded(img_data, TaskChallenge.gen_img_fn(challenge_id) )
             img_encoded.save()
         except Exception as e:
             print("error while encoding img ", e)
             return None
 
-        return ChallengeTaskModel(caption, img_encoded.full_loc)
+        return ChallengeTaskModel(caption, os.path.join(img_encoded.sub_folder, img_encoded.file_name))
 
     @marshal_with(mfields)
     @protector.protected_by_token
     def post(self, user_name):
+        print("user name ", user_name)
+
         args = task_parser.parse_args()
         challenge_id, task_data = args['challenge_id'], args['task_data']
 
+        print('here')
         if helper_check_ownership(user_name, challenge_id):
             task_model = self.parse_task(task_data, challenge_id)
 
@@ -69,7 +73,7 @@ class TaskChallenge(Resource):
                 return {"error" : "DB error"}, 500
 
             return {"message":"new task added"}
-
+        print("not owned")
         return {"error" : "Unauthorized action"}, 401
     
     @marshal_with(mfields)

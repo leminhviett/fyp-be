@@ -21,6 +21,12 @@ class TopicProgress(Resource):
 
     @marshal_with(mfields)
     @protected_by_token
+    def get(self, user_name):
+        return {"payload" :  jsonize_cursor(topic_prog_collection.get_progresses(user_name))}
+
+
+    @marshal_with(mfields)
+    @protected_by_token
     def post(self, user_name):
         args = topic_prog_parser.parse_args()
         topic_id = args['topic_id']

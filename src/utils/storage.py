@@ -1,46 +1,64 @@
 import uuid, werkzeug, os
 
-def gen_unique_filename(user_name, file_name):
-    return f"{user_name}-{uuid.uuid4()}-{file_name}"
+def gen_unique_filename(file_name):
+    return f"{uuid.uuid4()}_{file_name}"
 
 # for form data upload
 class BaseFile:
-    def __init__(self, file_object:werkzeug.datastructures.FileStorage, owner) -> None:
+    def __init__(self, file_object:werkzeug.datastructures.FileStorage, root_storage=os.getenv("STORAGE_PATH")) -> None:
+        self.root_storage = root_storage
+
+        if file_object is None: return 
+
         self.file_object = file_object
-        self.owner = owner
-        self.file_name = gen_unique_filename(self.owner, self.file_object.filename)
+        self.file_name = gen_unique_filename(self.file_object.filename)
 
     def save(self):
-        self.file_object.save(self.get_full_loc())
-
-    def get_full_loc(self):
+        full_loc = os.path.join(self.root_storage, self.get_subfolder(), self.file_name)
+        if self.file_object:
+            self.file_object.save(full_loc)
+    
+    def get_subfolder(self):
         pass
 
+    def delete(self, file_loc):
+        try:
+            os.remove(os.path.join(self.root_storage, file_loc))
+        except OSError:
+            pass
+
 class VmFile(BaseFile):
-    _ROOT_FOLDER = os.path.join(os.getenv("STORAGE_PATH"), os.getenv("VM_FOLDER"))
-
-    def get_full_loc(self):
-        return os.path.join(self._ROOT_FOLDER, self.file_name)
-
+    def get_subfolder(self):
+        return os.getenv("VM_FOLDER")
+        
 class ImgFile(BaseFile):
-    _ROOT_FOLDER = os.path.join(os.getenv("STORAGE_PATH"), os.getenv("IMG_FOLDER"))
-
-    def get_full_loc(self):
-        return os.path.join(self._ROOT_FOLDER, self.file_name)
+    def get_subfolder(self):
+        return os.getenv("IMG_FOLDER")
 
 # for base64 save
 import base64
 
-
 class ImgEncoded:
-    _ROOT_FOLDER = os.path.join(os.getenv("STORAGE_PATH"), os.getenv("IMG_FOLDER"))
-
-    def __init__(self, data:bytes, file_name:str) -> None:
+    def __init__(self, data:str, file_name:str) -> None:
         #file_name assume to be unique
-        self.data = data
-        self.full_loc = os.path.join(self._ROOT_FOLDER, file_name)
+        if data == '': return 
+
+        try:
+            self.data = data.encode()
+        except Exception as e:
+            raise e
+        self.file_name = file_name
+        self.sub_folder = os.getenv("IMG_FOLDER")
 
     def save(self):
-        with open(self.full_loc, "wb") as fh:
+        
+        loc = os.path.join(os.getenv("STORAGE_PATH"), self.sub_folder, self.file_name)
+        with open(loc, "wb") as fh:
             fh.write(base64.decodebytes(self.data))
+    
+    def delete(self, file_loc):
+        try:
+            os.remove(os.path.join(os.getenv("STORAGE_PATH"), file_loc))
+        except OSError:
+            pass
         
