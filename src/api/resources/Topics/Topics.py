@@ -17,13 +17,24 @@ write_parser.add_argument("topic_id", type=str, help="topic id is reuqired", req
 mfields = get_response_format()
 
 class Topics(Resource):
-    # TODO: pagination needed
+    @staticmethod
+    def hide_ans(topic):
+        for section in topic["sections"]:
+            for task in section["tasks"]:
+                task["ans"] = "*"*len(task["ans"])
+        return topic
+
     @marshal_with(mfields)
     def get(self, page_num, limit=2):
         if page_num==0: return {"error" : "page_num > 0"}
         # todo: hide ans before sending back to client
         res = topic_collection.get_topics(int(page_num), limit)
-        return {"payload" : jsonize_cursor(res)}
+
+        return_res = []
+        for topic in res:
+            return_res.append(Topics.hide_ans(topic))
+        
+        return {"payload" : jsonize_cursor(return_res)}
 
 class TopicResource(Resource):
     @staticmethod
@@ -32,13 +43,20 @@ class TopicResource(Resource):
 
     # TODO: only find published topic
     @marshal_with(mfields)
-    def get(self):
+    @protected_by_token
+    def get(self, user_name):
         args = write_parser.parse_args()
         topic_id = str(args['topic_id'])
 
         res = topic_collection.get_topic(topic_id)
         if res is None: return {"error" : "not found"}
         res['_id'] = str(res['_id'])
+
+        print(user_name, res["author_name"])
+        if user_name != res["author_name"]:
+            for section in res["sections"]:
+                for task in section["tasks"]:
+                    task["ans"] = "*"*len(task["ans"])
 
         return {"payload" : res}
     
