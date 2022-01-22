@@ -20,10 +20,10 @@ def protected_by_token(func):
                     return {"error" : "Token is missing"}, 401
 
         # print(request.headers)
-        print("json :", request.get_json())
+        # print("json :", request.get_json())
 
         # print(bearer_token)
-        # print("header: ", bearer_token)
+        print("header: ", bearer_token)
         if bearer_token is None:
             print('token is none')
             return {"error" : "Token is missing"}, 401

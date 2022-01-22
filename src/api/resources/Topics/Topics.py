@@ -1,3 +1,4 @@
+from email import header
 from flask_restful import Resource, marshal_with, reqparse
 from src.api.models import *
 from src.api.middlewares.protector import protected_by_token
@@ -43,8 +44,12 @@ class TopicResource(Resource):
 
     # TODO: only find published topic
     @marshal_with(mfields)
-    @protected_by_token
-    def get(self, user_name):
+    def get(self):
+        user_name = None
+        if "bearer_token" in request.headers:
+            data = jwt.decode(request.headers["bearer_token"], os.getenv("SECRET_KEY"),algorithms=["HS256"])
+            user_name = data["user_name"]
+
         args = write_parser.parse_args()
         topic_id = str(args['topic_id'])
 
@@ -53,6 +58,7 @@ class TopicResource(Resource):
         res['_id'] = str(res['_id'])
 
         print(user_name, res["author_name"])
+        
         if user_name != res["author_name"]:
             for section in res["sections"]:
                 for task in section["tasks"]:

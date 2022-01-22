@@ -53,7 +53,6 @@ class ChallengeCollection:
 
     @db_err_handler
     def get_challenge(self, challenge_id:str):
-        print(challenge_id)
         return self.collection.find_one({"_id" : ObjectId(challenge_id)})
 
     @db_err_handler

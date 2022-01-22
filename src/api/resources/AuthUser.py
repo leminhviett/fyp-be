@@ -19,7 +19,8 @@ class UserDev(Resource):
         return {'payload' : {'topics' : result['topics'], 'challenges': result['challenges']}}
 
 class AuthUser(Resource):
-    def helper(self, user_name, pw, renew_token):
+    @staticmethod
+    def helper(user_name, pw, renew_token):
         result = user_collection.find_user_by_username(user_name)
 
         if result is None:
@@ -42,7 +43,7 @@ class AuthUser(Resource):
         user_name, pw, renew_token = args['user_name'], args['pw'], args['renew_token']
         if not renew_token:
             return {"message":"method not allowed"}, 405
-        return self.helper(user_name, pw, renew_token)
+        return AuthUser.helper(user_name, pw, renew_token)
     
     # @marshal_with(mfields)  
     # def get(self):

@@ -61,8 +61,8 @@ class TaskChallenge(Resource):
 
         args = task_parser.parse_args()
         challenge_id, task_data = args['challenge_id'], args['task_data']
-
-        print('here')
+        print(task_data)
+        
         if helper_check_ownership(user_name, challenge_id):
             task_model = self.parse_task(task_data, challenge_id)
 
@@ -73,7 +73,6 @@ class TaskChallenge(Resource):
                 return {"error" : "DB error"}, 500
 
             return {"message":"new task added"}
-        print("not owned")
         return {"error" : "Unauthorized action"}, 401
     
     @marshal_with(mfields)

@@ -17,13 +17,21 @@ topic_prog_parser.add_argument("task_ans", type=str)
 
 mfields = get_response_format()
 
+class EachTopicProgress(Resource):
+    @marshal_with(mfields)
+    @protected_by_token
+    def get(self, user_name, topic_id):
+        res = topic_prog_collection.get_progess(topic_id, user_name)
+
+        return {"payload" :  {"done" : res['done']}}
+
+
 class TopicProgress(Resource):
 
     @marshal_with(mfields)
     @protected_by_token
     def get(self, user_name):
         return {"payload" :  jsonize_cursor(topic_prog_collection.get_progresses(user_name))}
-
 
     @marshal_with(mfields)
     @protected_by_token
@@ -32,7 +40,8 @@ class TopicProgress(Resource):
         topic_id = args['topic_id']
 
         find_topic = topic_collection.get_topic(str(topic_id))
-        if find_topic is None or not find_topic['published']: return {"error" : "topic not found"}
+        # if find_topic is None or not find_topic['published']: return {"error" : "topic not found"}
+        if find_topic is None: return {"error" : "topic not found"}
 
         find_progress = topic_prog_collection.get_progess(topic_id, user_name)
         if find_progress: return {"error" : "duplicate progress found"}, 400

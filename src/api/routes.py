@@ -16,3 +16,6 @@ api.add_resource(ChallengeResource, "/challenge")
 api.add_resource(TaskChallenge, "/challenge/task")
 
 api.add_resource(TopicProgress, "/progress/topic")
+api.add_resource(EachTopicProgress, "/progress/topic/<topic_id>")
+
+api.add_resource(UserContainer, "/user_container")
