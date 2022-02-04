@@ -42,14 +42,18 @@ class TaskTopic(Resource):
             return None
         
         desc, ques, ans, img_data = task_data['desc'], task_data['ques'], task_data['ans'], task_data['img_data']
+
+        if not img_data: return TopicTaskModel(desc, ques, ans, "")
+
         try:
             img_encoded = ImgEncoded(img_data, TaskTopic.gen_img_fn(topic_id))
             img_encoded.save()
+            saved_loc = os.path.join(img_encoded.sub_folder, img_encoded.file_name)
         except Exception as e:
             print(f"Error {e} during encoding img")
-            return None
+            
         
-        return TopicTaskModel(desc, ques, ans, os.path.join(img_encoded.sub_folder, img_encoded.file_name))
+        return TopicTaskModel(desc, ques, ans, saved_loc)
 
     @marshal_with(mfields)
     @helper_check_is_published

@@ -19,3 +19,5 @@ api.add_resource(TopicProgress, "/progress/topic")
 api.add_resource(EachTopicProgress, "/progress/topic/<topic_id>")
 
 api.add_resource(UserContainer, "/user_container")
+api.add_resource(SQLInj, "/sql_inj")
+

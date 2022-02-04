@@ -22,7 +22,7 @@ class EachTopicProgress(Resource):
     @protected_by_token
     def get(self, user_name, topic_id):
         res = topic_prog_collection.get_progess(topic_id, user_name)
-
+        if (res is None): return {"message" : "progress not found"}, 404
         return {"payload" :  {"done" : res['done']}}
 
 
@@ -72,15 +72,16 @@ class TopicProgress(Resource):
         topic_id, section_idx, task_idx, task_ans = args['topic_id'], args['section_idx'], args['task_idx'], args['task_ans']
 
         find_topic = topic_collection.get_topic(str(topic_id))
-        if find_topic is None or not find_topic['published']: return {"error" : "topic not found"}
+        # if find_topic is None or not find_topic['published']: return {"error" : "topic not found"}
+        if find_topic is None: return {"error" : "topic not found"}
         
         try:
             if find_topic['sections'][section_idx]['tasks'][task_idx]['ans'] != task_ans:
-                return {"error" : "ans submited is wrong"}
+                return {"error" : "ans submited is wrong"}, 400
         except Exception as e:
             return {"error" : f"invalid data submitted; {e}"}, 401
 
-        result = topic_prog_collection.update_progress(topic_id, user_name, section_idx, task_idx)
+        result = topic_prog_collection.update_progress(topic_id, user_name, section_idx, task_idx, task_ans)
 
         if result:
             return {"message" : "progress updated"}

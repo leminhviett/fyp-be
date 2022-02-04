@@ -23,8 +23,8 @@ class TopicProgessCollection:
     def add_progress(self, progress:TopicProgressModel):
         return self.collection.insert_one(progress.to_dict())
 
-    def update_progress(self, topic_id, learner_id, section_idx, topic_idx):
-        return self.collection.update_one({"topic_id" : topic_id, "learner_id" : learner_id}, {"$push" : {f"done.{section_idx}" : topic_idx}})
+    def update_progress(self, topic_id, learner_id, section_idx, task_idx, ans):
+        return self.collection.update_one({"topic_id" : topic_id, "learner_id" : learner_id}, {"$set" : {f"done.{section_idx}.{task_idx}" : ans}})
 
     def del_progress(self, topic_id, learner_id):
         return self.collection.delete_one({"topic_id" : topic_id, "learner_id" : learner_id})
