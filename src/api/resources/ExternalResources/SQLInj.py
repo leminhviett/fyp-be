@@ -14,7 +14,7 @@ class SQLInj(Resource):
     @marshal_with(mfields)
     def post(self):
         user_name = request.get_json()['user_name']
-        print(session[user_name])
+
         if 'sql_inj' in session:
             return {"payload" : session['sql_inj']}
 

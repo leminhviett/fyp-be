@@ -34,18 +34,20 @@ class TaskTopic(Resource):
     
     @staticmethod
     def parse_task(topic_id, task_data):
-        attrs = ["desc", "ques", "ans", "img_data"]
+        attrs = ["desc", "ques", "ans"]
         for attr in attrs:
             if attr in task_data:
                 # print(f"{attr} checked")
                 continue
             return None
         
-        desc, ques, ans, img_data = task_data['desc'], task_data['ques'], task_data['ans'], task_data['img_data']
-
-        if not img_data: return TopicTaskModel(desc, ques, ans, "")
+        desc, ques, ans = task_data['desc'], task_data['ques'], task_data['ans']
+        
+        if 'img_data' not in task_data:
+            return TopicTaskModel(desc, ques, ans, "")
 
         try:
+            img_data = task_data['img_data']
             img_encoded = ImgEncoded(img_data, TaskTopic.gen_img_fn(topic_id))
             img_encoded.save()
             saved_loc = os.path.join(img_encoded.sub_folder, img_encoded.file_name)
