@@ -1,4 +1,4 @@
 jwt
 flask
 pymongo
-flask_restful
+Flask-RESTful>0.3.8
