@@ -11,6 +11,8 @@ create_parser = reqparse.RequestParser()
 create_parser.add_argument("topic_name", type=str, help="topic name is reuqired", required=True)
 create_parser.add_argument("topic_desc", type=str, help="topic desc is reuqired", required=True)
 create_parser.add_argument("banner_img", type=str)
+create_parser.add_argument("img_repo", type=str)
+
 
 write_parser = reqparse.RequestParser()
 write_parser.add_argument("topic_id", type=str, help="topic id is reuqired", required=True)
@@ -71,7 +73,7 @@ class TopicResource(Resource):
     @protected_by_token
     def post(self, user_name):
         args = create_parser.parse_args()
-        topic_name, topic_desc, banner_img = args['topic_name'], args['topic_desc'], args['banner_img']
+        topic_name, topic_desc, banner_img, img_repo = args['topic_name'], args['topic_desc'], args['banner_img'], args['img_repo']
         try:
             banner_img_obj = ImgEncoded(banner_img, TopicResource.gen_img_fn(topic_name))
             banner_img_obj.save()
@@ -86,8 +88,9 @@ class TopicResource(Resource):
                                         user_name, 
                                         topic_name,
                                         topic_desc, 
-                                        os.path.join(banner_img_obj.sub_folder, banner_img_obj.file_name
-                                    )))
+                                        os.path.join(banner_img_obj.sub_folder, banner_img_obj.file_name),
+                                        img_repo=img_repo
+                                    ))
                     result2 = user_collection.push_topic(user_name, str(result.inserted_id))
             if result2:
                 return {"message" : "successfully added topic"}

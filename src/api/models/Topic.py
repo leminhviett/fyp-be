@@ -26,12 +26,13 @@ class TopicSectionModel:
         return {"heading" : self.heading, "tasks" : temp}
 
 class TopicModel:
-    def __init__(self, user_name, topic_name, desc, img_loc=None, sections:List[TopicSectionModel] = []) -> None:
+    def __init__(self, user_name, topic_name, desc, img_loc=None, img_repo=None,sections:List[TopicSectionModel] = []) -> None:
         self.author_name = user_name
         self.topic_name = topic_name
         self.topic_desc = desc
         self.sections = sections
         self.banner_img = img_loc
+        self.img_repo = img_repo
         self.published = False
 
     def to_dict(self):
@@ -42,6 +43,7 @@ class TopicModel:
             "topic_desc" : self.topic_desc,
             "sections" : temp,
             "banner_img" : self.banner_img,
+            "img_repo" : self.img_repo,
             "published" : self.published
         }
 
