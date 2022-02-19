@@ -28,7 +28,7 @@ class Topics(Resource):
         return topic
 
     @marshal_with(mfields)
-    def get(self, page_num, limit=2):
+    def get(self, page_num, limit=3):
         if page_num==0: return {"error" : "page_num > 0"}
         # todo: hide ans before sending back to client
         res = topic_collection.get_topics(int(page_num), limit)

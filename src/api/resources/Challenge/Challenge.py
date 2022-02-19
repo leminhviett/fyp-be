@@ -27,7 +27,7 @@ mfields = get_response_format()
 
 class Challenges(Resource):
     @marshal_with(mfields)
-    def get(self, page_num, limit=2):
+    def get(self, page_num, limit=3):
         if page_num==0: return {"error" : "page_num > 0"}
         # todo: hide ans before sending back to client
         res = challenge_collection.get_challenges(int(page_num), limit)
